@@ -910,8 +910,10 @@ button {
   overflow: hidden;
 }
 #libraryModal .modal {
-  height: min(840px, 92vh);
-  max-height: 100vh;
+  height: calc(100vh - 36px);
+  height: calc(100dvh - 36px);
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
 }
 #libraryModal #clearUsedBtn {
   margin-right: auto;
