@@ -3,7 +3,7 @@ import {
   DEFAULT_QUESTION_BANK,
   DEFAULT_STUDENTS
 } from './data/defaultQuestions';
-import { CURRENT_RELEASE } from './data/changelog';
+import { CHANGELOG, CURRENT_RELEASE } from './data/changelog';
 import { uid } from './utils/id';
 
 (() => {
@@ -1208,17 +1208,41 @@ import { uid } from './utils/id';
     }
     if (id === 'questionModal') cleanupImages().catch(() => {});
   }
+  function compareVersions(a, b) {
+    const left = String(a).split('.').map(Number),
+      right = String(b).split('.').map(Number),
+      length = Math.max(left.length, right.length);
+    for (let i = 0; i < length; i++) {
+      const difference = (left[i] || 0) - (right[i] || 0);
+      if (difference) return difference;
+    }
+    return 0;
+  }
   function showUpdateNotice() {
     const seenVersion =
       localStorage.getItem(VERSION_KEY) ||
       localStorage.getItem(LEGACY_VERSION_KEY);
-    if (seenVersion === APP_VERSION) {
+    if (!seenVersion) {
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+      return;
+    }
+    if (compareVersions(seenVersion, APP_VERSION) >= 0) {
+      localStorage.setItem(VERSION_KEY, seenVersion);
+      localStorage.removeItem(LEGACY_VERSION_KEY);
+      return;
+    }
+    const unseenChanges = CHANGELOG.filter(
+      (release) => compareVersions(release.version, seenVersion) > 0
+    )
+      .sort((a, b) => compareVersions(a.version, b.version))
+      .flatMap((release) => release.changes);
+    if (!unseenChanges.length) {
       localStorage.setItem(VERSION_KEY, APP_VERSION);
       localStorage.removeItem(LEGACY_VERSION_KEY);
       return;
     }
     $('#updateVersion').textContent = `v${APP_VERSION}`;
-    $('#updateList').innerHTML = CURRENT_RELEASE.changes
+    $('#updateList').innerHTML = unseenChanges
       .map((update) => `<li>${esc(update)}</li>`)
       .join('');
     $('#updateModal').classList.add('open');
