@@ -1,15 +1,21 @@
 // @ts-nocheck
-import './styles.css';
 import {
   DEFAULT_QUESTION_BANK,
   DEFAULT_STUDENTS
 } from './data/defaultQuestions';
+import { CURRENT_RELEASE } from './data/changelog';
 import { uid } from './utils/id';
 
 (() => {
   'use strict';
-  const KEY = 'firstGradeQuestionBoard_v2',
-    OLD_KEY = 'firstGradeQuestionBoard_v1',
+  const KEY = 'qotd_data_v2',
+    LEGACY_DATA_KEYS = [
+      'firstGradeQuestionBoard_v2',
+      'firstGradeQuestionBoard_v1'
+    ],
+    APP_VERSION = CURRENT_RELEASE.version,
+    VERSION_KEY = 'qotd_seenVersion',
+    LEGACY_VERSION_KEY = 'firstGradeQuestionBoard_seenVersion',
     DB_NAME = 'questionBoardImages',
     DB_STORE = 'images';
   const $ = (s) => document.querySelector(s),
@@ -93,7 +99,10 @@ import { uid } from './utils/id';
     try {
       return (
         JSON.parse(
-          localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY)
+          localStorage.getItem(KEY) ||
+            LEGACY_DATA_KEYS.map((key) => localStorage.getItem(key)).find(
+              Boolean
+            )
         ) || defaultData()
       );
     } catch {
@@ -422,6 +431,7 @@ import { uid } from './utils/id';
     renderTabs();
     const q = current(),
       main = $('#main');
+    updateControls();
     if (!q) {
       main.innerHTML =
         '<div></div><div class="empty-state"><h2>No open question</h2><button class="primary" id="browseLibraryBtn">Open library</button></div><div></div>';
@@ -470,7 +480,6 @@ import { uid } from './utils/id';
       `<section class="board"><h1 class="question">${esc(q.question)}</h1>${absentCount ? `<p class="attendance-summary">Attendance · ${absentCount} absent</p>` : ''}<div class="answer-grid" style="--option-count:${Math.max(1, q.answers.length)}">${cols}</div></section>` +
       groupSide('boys');
     bindBoard();
-    updateControls();
   }
   function renderTabs() {
     const tabs = $('#tabs'),
@@ -603,18 +612,23 @@ import { uid } from './utils/id';
     );
   }
   function updateControls() {
-    const h = history();
+    const q = current(),
+      h = q ? history() : { undo: [], redo: [] };
     $('#undoBtn').disabled = !h.undo.length;
     $('#redoBtn').disabled = !h.redo.length;
     const disabled = openQuestions().length < 2;
     $('#prevBtn').disabled = disabled;
     $('#nextBtn').disabled = disabled;
-    const absentCount = current()?.absentStudentIds?.length || 0;
+    const hasQuestion = !!q,
+      absentCount = q?.absentStudentIds?.length || 0;
+    $('#attendanceBtn').disabled = !hasQuestion;
     $('#attendanceBadge').textContent = absentCount || '';
     $('#attendanceBadge').hidden = !absentCount;
-    $('#attendanceBtn').title = absentCount
-      ? `Attendance · ${absentCount} absent`
-      : 'Attendance for this question';
+    $('#attendanceBtn').title = !hasQuestion
+      ? 'Open a question to take attendance'
+      : absentCount
+        ? `Attendance · ${absentCount} absent`
+        : 'Attendance for this question';
   }
   function undo() {
     const q = current(),
@@ -664,6 +678,7 @@ import { uid } from './utils/id';
     $('#' + group + 'Rows').appendChild(row);
   }
   function openSettings() {
+    $('#settingsVersion').textContent = `v${APP_VERSION}`;
     for (const g of ['girls', 'boys']) {
       $('#' + g + 'Rows').innerHTML = '';
       $('#' + g + 'Label').value = data.groupSettings[g].label;
@@ -1187,7 +1202,26 @@ import { uid } from './utils/id';
   }
   function closeModal(id) {
     $('#' + id)?.classList.remove('open');
+    if (id === 'updateModal') {
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+      localStorage.removeItem(LEGACY_VERSION_KEY);
+    }
     if (id === 'questionModal') cleanupImages().catch(() => {});
+  }
+  function showUpdateNotice() {
+    const seenVersion =
+      localStorage.getItem(VERSION_KEY) ||
+      localStorage.getItem(LEGACY_VERSION_KEY);
+    if (seenVersion === APP_VERSION) {
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+      localStorage.removeItem(LEGACY_VERSION_KEY);
+      return;
+    }
+    $('#updateVersion').textContent = `v${APP_VERSION}`;
+    $('#updateList').innerHTML = CURRENT_RELEASE.changes
+      .map((update) => `<li>${esc(update)}</li>`)
+      .join('');
+    $('#updateModal').classList.add('open');
   }
   function toast(msg) {
     const el = $('#toast');
@@ -1263,10 +1297,11 @@ import { uid } from './utils/id';
     migrate();
     await migrateImages();
     await hydrateImages();
-    localStorage.removeItem(OLD_KEY);
     persist();
+    LEGACY_DATA_KEYS.forEach((key) => localStorage.removeItem(key));
     bindStatic();
     render();
+    showUpdateNotice();
   }
   init().catch((e) => {
     console.error(e);

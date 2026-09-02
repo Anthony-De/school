@@ -107,6 +107,13 @@ button {
 }
 .icon-btn:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+#attendanceBtn:disabled {
+  opacity: 0.2;
+  color: #8993a5;
+  background: #f5f6f8;
+  filter: grayscale(1);
 }
 .secondary:disabled {
   cursor: not-allowed;
@@ -429,6 +436,42 @@ button {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+}
+.update-modal {
+  width: min(520px, 100%);
+  height: auto;
+}
+.update-intro {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+.update-list {
+  margin: 0;
+  padding-left: 22px;
+  line-height: 1.5;
+}
+.update-list li + li {
+  margin-top: 7px;
+}
+.app-info-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+.app-info-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.app-info-list dt {
+  color: var(--muted);
+}
+.app-info-list dd {
+  margin: 0;
+  font-weight: 800;
+  text-align: right;
 }
 .section {
   background: white;

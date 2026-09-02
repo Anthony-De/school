@@ -6,6 +6,7 @@
       name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1" />
     <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" href="/src/styles.css" />
     <title>Question of the Day</title>
   </head>
   <body>
@@ -55,6 +56,7 @@
             <button
               class="icon-btn"
               id="attendanceBtn"
+              disabled
               title="Attendance for this question">
               <svg class="ico"><use href="#i-attendance" /></svg
               ><span class="label">Attendance</span
@@ -152,6 +154,20 @@
                   accept="application/json"
               /></label>
             </div>
+          </details>
+          <details class="section app-info-section">
+            <summary>About this app</summary>
+            <dl class="app-info-list">
+              <div>
+                <dt>Version</dt>
+                <dd id="settingsVersion"></dd>
+              </div>
+            </dl>
+            <p class="help">
+              Use Export backup to keep a safe copy of your class list,
+              questions, and student answers. Clearing your browser data may
+              erase them.
+            </p>
           </details>
         </div>
         <div class="modal-actions">
@@ -264,6 +280,37 @@
           </button>
           <button class="secondary" id="clearUsedBtn">Clear All Used</button>
           <button class="secondary" data-close="libraryModal">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-wrap" id="updateModal">
+      <div
+        class="modal update-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="updateTitle">
+        <div class="modal-head">
+          <h2 id="updateTitle">
+            What’s new in <span id="updateVersion"></span>
+          </h2>
+          <button
+            class="close"
+            data-close="updateModal"
+            aria-label="Close update details">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="update-intro">
+            The workspace has been updated since your last visit.
+            <br />
+            Here’s what’s new:
+          </p>
+          <ul class="update-list" id="updateList"></ul>
+        </div>
+        <div class="modal-actions">
+          <button class="primary" data-close="updateModal">Got it</button>
         </div>
       </div>
     </div>
