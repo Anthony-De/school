@@ -958,13 +958,13 @@ import { uid } from './utils/id';
         )
         .join('') || '<div class="empty-note">No saved work</div>';
     $('#libraryList').innerHTML =
-      '<section class="library-section saved-work-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Saved Work</h3><label class="category-filter" title="Filter Saved Work by category"><select id="savedWorkCategory" aria-label="Filter Saved Work by category">' +
+      '<section class="library-section saved-work-section"><div class="library-section-head"><h3 class="library-section-title">Saved Work</h3><label class="category-filter" title="Filter Saved Work by category"><select id="savedWorkCategory" aria-label="Filter Saved Work by category">' +
       categoryOptions(savedWorkCategory) +
-      '</select></label></div></div><div class="library-items">' +
+      '</select></label></div><div class="library-items">' +
       sessionHTML +
-      '</div></section><section class="library-section questions-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Questions</h3><label class="category-filter" title="Filter Questions by category"><select id="questionCategory" aria-label="Filter Questions by category">' +
+      '</div></section><section class="library-section questions-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Questions</h3><button class="primary" id="libraryNewBtn"><svg class="ico"><use href="#i-plus"/></svg>New question</button></div><label class="category-filter" title="Filter Questions by category"><select id="questionCategory" aria-label="Filter Questions by category">' +
       categoryOptions(questionCategory) +
-      '</select></label></div><button class="primary" id="libraryNewBtn"><svg class="ico"><use href="#i-plus"/></svg>New question</button></div><div class="library-items">' +
+      '</select></label></div><div class="library-items">' +
       templateHTML +
       '</div></section>';
     $('#savedWorkCategory').onchange = (event) => {
