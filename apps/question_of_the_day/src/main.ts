@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   DEFAULT_QUESTION_BANK,
   DEFAULT_STUDENTS
@@ -18,20 +17,22 @@ import { uid } from './utils/id';
     LEGACY_VERSION_KEY = 'firstGradeQuestionBoard_seenVersion',
     DB_NAME = 'questionBoardImages',
     DB_STORE = 'images';
-  const $ = (s) => document.querySelector(s),
-    $$ = (s) => [...document.querySelectorAll(s)];
+  const $ = (s: string): any => document.querySelector(s),
+    $$ = (s: string): any[] => [...document.querySelectorAll(s)];
   const BUILT_INS = Object.entries(DEFAULT_QUESTION_BANK).flatMap(
     ([category, items], ci) =>
-      items.map(([question, options], i) => ({
-        builtinId: `builtin-${ci + 1}-${i + 1}`,
-        question,
-        title: '',
-        category,
-        answers: options.map((text) => ({ text, imageId: null }))
-      }))
+      items.map(
+        ([question, options]: readonly [string, readonly string[]], i) => ({
+          builtinId: `builtin-${ci + 1}-${i + 1}`,
+          question,
+          title: '',
+          category,
+          answers: options.map((text) => ({ text, imageId: null }))
+        })
+      )
   );
   const CATEGORIES = Object.freeze(Object.keys(DEFAULT_QUESTION_BANK));
-  const clone = (x) => structuredClone(x);
+  const clone = <T>(x: T): T => structuredClone(x);
   const esc = (s = '') =>
     String(s).replace(
       /[&<>"']/g,
@@ -44,27 +45,32 @@ import { uid } from './utils/id';
           "'": '&#39;'
         })[c]
     );
-  let data,
-    historyMap = {},
-    selected = null,
-    dragId = null,
-    draft = null,
+  let data: any,
+    historyMap: Record<string, { undo: string[]; redo: string[] }> = {},
+    selected: string | null = null,
+    dragId: string | null = null,
+    draft: any = null,
     questionCategory = '',
     savedWorkCategory = '',
-    imageCache = new Map(),
-    dbPromise;
+    imageCache = new Map<string, string>(),
+    dbPromise: Promise<IDBDatabase> | null,
+    toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   function defaultData() {
-    const students = DEFAULT_STUDENTS.girls
-      .map((name) => ({ id: uid(), name, group: 'girls', absent: false }))
-      .concat(
-        DEFAULT_STUDENTS.boys.map((name) => ({
-          id: uid(),
-          name,
-          group: 'boys',
-          absent: false
-        }))
-      );
+    const students = [
+      ...DEFAULT_STUDENTS.girls.map((name) => ({
+        id: uid(),
+        name,
+        group: 'girls',
+        absent: false
+      })),
+      ...DEFAULT_STUDENTS.boys.map((name) => ({
+        id: uid(),
+        name,
+        group: 'boys',
+        absent: false
+      }))
+    ];
     const templates = BUILT_INS.map((b) => ({ id: uid(), ...clone(b) })),
       template = templates[0];
     const question = instanceFrom(template, students);
@@ -290,7 +296,7 @@ import { uid } from './utils/id';
   function openDB() {
     return (
       dbPromise ||
-      (dbPromise = new Promise((resolve, reject) => {
+      (dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
         const r = indexedDB.open(DB_NAME, 1);
         r.onupgradeneeded = () => r.result.createObjectStore(DB_STORE);
         r.onsuccess = () => resolve(r.result);
@@ -298,45 +304,46 @@ import { uid } from './utils/id';
       }))
     );
   }
-  async function dbPut(id, blob) {
+  async function dbPut(id: string, blob: Blob) {
     const db = await openDB();
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const tx = db.transaction(DB_STORE, 'readwrite');
       tx.objectStore(DB_STORE).put(blob, id);
-      tx.oncomplete = res;
+      tx.oncomplete = () => res();
       tx.onerror = () => rej(tx.error);
     });
   }
-  async function dbDelete(id) {
+  async function dbDelete(id: string) {
     const db = await openDB();
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const tx = db.transaction(DB_STORE, 'readwrite');
       tx.objectStore(DB_STORE).delete(id);
-      tx.oncomplete = res;
+      tx.oncomplete = () => res();
       tx.onerror = () => rej(tx.error);
     });
   }
-  async function dbEntries() {
+  async function dbEntries(): Promise<Array<[string, Blob]>> {
     const db = await openDB();
-    return new Promise((res, rej) => {
+    return new Promise<Array<[string, Blob]>>((res, rej) => {
       const tx = db.transaction(DB_STORE);
       const store = tx.objectStore(DB_STORE),
         kr = store.getAllKeys(),
         vr = store.getAll();
-      tx.oncomplete = () => res(kr.result.map((id, i) => [id, vr.result[i]]));
+      tx.oncomplete = () =>
+        res(kr.result.map((id, i) => [String(id), vr.result[i] as Blob]));
       tx.onerror = () => rej(tx.error);
     });
   }
   async function dbClear() {
     const db = await openDB();
-    return new Promise((res, rej) => {
+    return new Promise<void>((res, rej) => {
       const tx = db.transaction(DB_STORE, 'readwrite');
       tx.objectStore(DB_STORE).clear();
-      tx.oncomplete = res;
+      tx.oncomplete = () => res();
       tx.onerror = () => rej(tx.error);
     });
   }
-  async function compress(file) {
+  async function compress(file: File): Promise<Blob | null> {
     if (file.size > 20e6) {
       toast('Please choose an image smaller than 20 MB');
       return null;
@@ -360,7 +367,7 @@ import { uid } from './utils/id';
       return file;
     }
   }
-  async function addImage(file) {
+  async function addImage(file: File) {
     const blob = await compress(file);
     if (!blob) return null;
     const id = uid();
@@ -425,7 +432,7 @@ import { uid } from './utils/id';
     return data.groupSettings[student.group]?.color || '#7357d8';
   }
   function studentHTML(s) {
-    return `<div class="student ${selected === s.id ? 'selected' : ''}" style="--student-group-color:${esc(studentColor(s))}" data-student="${s.id}" title="Drag or tap to move">${esc(s.name)}</div>`;
+    return `<div class="student ${selected === s.id ? 'selected' : ''}" style="--student-group-color:${esc(studentColor(s))}" data-student="${esc(s.id)}" title="Drag or tap to move">${esc(s.name)}</div>`;
   }
   function render() {
     renderTabs();
@@ -442,7 +449,7 @@ import { uid } from './utils/id';
       absentCount = q.absentStudentIds?.length || 0;
     const cols = q.answers
       .map((a, i) => {
-        const order = new Map(
+        const order = new Map<string, number>(
             (q.placementOrder || []).map((id, position) => [id, position])
           ),
           placed = q.students
@@ -488,7 +495,7 @@ import { uid } from './utils/id';
       open
         .map(
           (q) =>
-            `<div class="tab ${q.id === data.activeId ? 'active' : ''} ${isComplete(q) ? 'complete' : isPartial(q) ? 'partial' : ''}" data-tab="${q.id}" title="${esc(q.question)}" role="tab" tabindex="0" aria-selected="${q.id === data.activeId}"><span class="tab-label">${esc(q.title || q.question)}</span><button class="tab-close" type="button" data-close-tab="${q.id}" title="Close tab" aria-label="Close ${esc(q.title || q.question)}">×</button></div>`
+            `<div class="tab ${q.id === data.activeId ? 'active' : ''} ${isComplete(q) ? 'complete' : isPartial(q) ? 'partial' : ''}" data-tab="${esc(q.id)}" title="${esc(q.question)}" role="tab" tabindex="0" aria-selected="${q.id === data.activeId}"><span class="tab-label">${esc(q.title || q.question)}</span><button class="tab-close" type="button" data-close-tab="${esc(q.id)}" title="Close tab" aria-label="Close ${esc(q.title || q.question)}">×</button></div>`
         )
         .join('') +
       '<button class="tab tab-add" id="addTab" title="New question"><svg class="ico"><use href="#i-plus"/></svg></button>';
@@ -537,8 +544,10 @@ import { uid } from './utils/id';
         ghost = null;
       const clear = () =>
           $$('.drag-target').forEach((x) => x.classList.remove('drag-target')),
-        at = (x, y) =>
-          document.elementFromPoint(x, y)?.closest('.answer-column,.side'),
+        at = (x: number, y: number): HTMLElement | null =>
+          document
+            .elementFromPoint(x, y)
+            ?.closest<HTMLElement>('.answer-column,.side') || null,
         finish = () => {
           ghost?.remove();
           el.classList.remove('dragging-source');
@@ -668,11 +677,12 @@ import { uid } from './utils/id';
     row.className = 'student-edit-row';
     row.dataset.id = s.id;
     row.innerHTML = `<input class="student-name-input" value="${esc(s.name)}" placeholder="Student name"><button class="mini row-up" title="Move up"><svg class="ico"><use href="#i-up"/></svg></button><button class="mini row-down" title="Move down"><svg class="ico"><use href="#i-down"/></svg></button><button class="row-remove" title="Remove student"><svg class="ico"><use href="#i-trash"/></svg></button>`;
-    row.querySelector('.row-remove').onclick = () => row.remove();
-    row.querySelector('.row-up').onclick = () =>
+    row.querySelector<HTMLButtonElement>('.row-remove')!.onclick = () =>
+      row.remove();
+    row.querySelector<HTMLButtonElement>('.row-up')!.onclick = () =>
       row.previousElementSibling &&
       row.parentNode.insertBefore(row, row.previousElementSibling);
-    row.querySelector('.row-down').onclick = () =>
+    row.querySelector<HTMLButtonElement>('.row-down')!.onclick = () =>
       row.nextElementSibling &&
       row.parentNode.insertBefore(row.nextElementSibling, row);
     $('#' + group + 'Rows').appendChild(row);
@@ -742,7 +752,7 @@ import { uid } from './utils/id';
       data.classStudents
         .map(
           (s) =>
-            `<label class="attendance-row"><input type="checkbox" value="${s.id}" ${absent.has(s.id) ? 'checked' : ''}><span>${esc(s.name)}</span></label>`
+            `<label class="attendance-row"><input type="checkbox" value="${esc(s.id)}" ${absent.has(s.id) ? 'checked' : ''}><span>${esc(s.name)}</span></label>`
         )
         .join('') ||
       '<div class="empty-note">Add students in Settings first.</div>';
@@ -962,14 +972,14 @@ import { uid } from './utils/id';
       templates
         .map(
           (t) =>
-            `<article class="library-item library-question ${t.used ? 'used' : ''}"><div><h3>${esc(t.title || t.question)}${t.used ? '<span class="used-badge">Used</span>' : ''}</h3><p>${esc(t.category || 'Uncategorized')} · ${t.answers.length} option${t.answers.length === 1 ? '' : 's'}</p><p class="option-preview">${t.answers.map((answer) => esc(answer.text || (imageSrc(answer) ? 'Picture' : 'Untitled option'))).join(' · ')}</p></div><div class="row-actions"><button class="quiet-action toggle-used" data-id="${t.id}" aria-pressed="${!!t.used}">${t.used ? '✓ Used' : 'Mark used'}</button><button class="primary use-template" data-id="${t.id}">Use Question</button><button class="${t.builtinId ? 'secondary' : 'danger'} delete-template" data-id="${t.id}" title="${t.builtinId ? 'Hide built-in question' : 'Delete library question'}">${t.builtinId ? 'Hide' : '<svg class="ico"><use href="#i-trash"/></svg><span>Delete</span>'}</button></div></article>`
+            `<article class="library-item library-question ${t.used ? 'used' : ''}"><div><h3>${esc(t.title || t.question)}${t.used ? '<span class="used-badge">Used</span>' : ''}</h3><p>${esc(t.category || 'Uncategorized')} · ${t.answers.length} option${t.answers.length === 1 ? '' : 's'}</p><p class="option-preview">${t.answers.map((answer) => esc(answer.text || (imageSrc(answer) ? 'Picture' : 'Untitled option'))).join(' · ')}</p></div><div class="row-actions"><button class="quiet-action toggle-used" data-id="${esc(t.id)}" aria-pressed="${!!t.used}">${t.used ? '✓ Used' : 'Mark used'}</button><button class="primary use-template" data-id="${esc(t.id)}">Use Question</button><button class="${t.builtinId ? 'secondary' : 'danger'} delete-template" data-id="${esc(t.id)}" title="${t.builtinId ? 'Hide built-in question' : 'Delete library question'}">${t.builtinId ? 'Hide' : '<svg class="ico"><use href="#i-trash"/></svg><span>Delete</span>'}</button></div></article>`
         )
         .join('') || '<div class="empty-note">No matching questions</div>';
     const sessionHTML =
       sessions
         .map(
           (q) =>
-            `<article class="library-item saved-work"><div><h3>${esc(q.title || q.question)} ${isComplete(q) ? '✓' : ''}</h3><p>${esc(q.category || 'Uncategorized')} · ${Object.keys(q.placements).length} response${Object.keys(q.placements).length === 1 ? '' : 's'}</p></div><div class="row-actions"><button class="secondary reopen-session" data-id="${q.id}">${data.openQuestionIds.includes(q.id) ? 'View' : 'Reopen'}</button><button class="danger delete-session" data-id="${q.id}" title="Delete saved copy"><svg class="ico"><use href="#i-trash"/></svg></button></div></article>`
+            `<article class="library-item saved-work"><div><h3>${esc(q.title || q.question)} ${isComplete(q) ? '✓' : ''}</h3><p>${esc(q.category || 'Uncategorized')} · ${Object.keys(q.placements).length} response${Object.keys(q.placements).length === 1 ? '' : 's'}</p></div><div class="row-actions"><button class="secondary reopen-session" data-id="${esc(q.id)}">${data.openQuestionIds.includes(q.id) ? 'View' : 'Reopen'}</button><button class="danger delete-session" data-id="${esc(q.id)}" title="Delete saved copy"><svg class="ico"><use href="#i-trash"/></svg></button></div></article>`
         )
         .join('') || '<div class="empty-note">No saved work</div>';
     $('#libraryList').innerHTML =
@@ -1134,10 +1144,10 @@ import { uid } from './utils/id';
     );
   }
 
-  function blobToDataURL(blob) {
+  function blobToDataURL(blob: Blob): Promise<string> {
     return new Promise((res, rej) => {
       const r = new FileReader();
-      r.onload = () => res(r.result);
+      r.onload = () => res(String(r.result));
       r.onerror = rej;
       r.readAsDataURL(blob);
     });
@@ -1251,8 +1261,8 @@ import { uid } from './utils/id';
     const el = $('#toast');
     el.textContent = msg;
     el.classList.add('show');
-    clearTimeout(toast.t);
-    toast.t = setTimeout(() => el.classList.remove('show'), 2400);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
   }
 
   function bindStatic() {
@@ -1298,7 +1308,10 @@ import { uid } from './utils/id';
         })
     );
     document.addEventListener('click', (event) => {
-      if (!selected || event.target.closest('.student, .answer-column, .side'))
+      if (
+        !selected ||
+        (event.target as HTMLElement).closest('.student, .answer-column, .side')
+      )
         return;
       selected = null;
       render();
