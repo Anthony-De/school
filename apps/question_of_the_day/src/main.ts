@@ -53,7 +53,7 @@ import { uid } from './utils/id';
     questionCategory = '',
     savedWorkCategory = '',
     imageCache = new Map<string, string>(),
-    dbPromise: Promise<IDBDatabase> | null,
+    dbPromise: Promise<IDBDatabase> | null = null,
     toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   function defaultData() {
@@ -355,9 +355,12 @@ import { uid } from './utils/id';
         canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(bitmap.width * scale));
       canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-      canvas
-        .getContext('2d')
-        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const context = canvas.getContext('2d');
+      if (!context) {
+        bitmap.close();
+        return file;
+      }
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
       return (
         (await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.82))) ||
