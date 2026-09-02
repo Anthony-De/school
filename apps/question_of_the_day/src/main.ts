@@ -956,13 +956,13 @@ import { uid } from './utils/id';
           (q) =>
             `<article class="library-item saved-work"><div><h3>${esc(q.title || q.question)} ${isComplete(q) ? '✓' : ''}</h3><p>${esc(q.category || 'Uncategorized')} · ${Object.keys(q.placements).length} response${Object.keys(q.placements).length === 1 ? '' : 's'}</p></div><div class="row-actions"><button class="secondary reopen-session" data-id="${q.id}">${data.openQuestionIds.includes(q.id) ? 'View' : 'Reopen'}</button><button class="danger delete-session" data-id="${q.id}" title="Delete saved copy"><svg class="ico"><use href="#i-trash"/></svg></button></div></article>`
         )
-        .join('') || '<div class="empty-note">No matching saved work</div>';
+        .join('') || '<div class="empty-note">No saved work</div>';
     $('#libraryList').innerHTML =
-      '<section class="library-section saved-work-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Saved Work</h3><label class="category-filter" title="Filter Saved Work by category"><svg class="ico"><use href="#i-filter"/></svg><select id="savedWorkCategory" aria-label="Filter Saved Work by category">' +
+      '<section class="library-section saved-work-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Saved Work</h3><label class="category-filter" title="Filter Saved Work by category"><select id="savedWorkCategory" aria-label="Filter Saved Work by category">' +
       categoryOptions(savedWorkCategory) +
       '</select></label></div></div><div class="library-items">' +
       sessionHTML +
-      '</div></section><section class="library-section questions-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Questions</h3><label class="category-filter" title="Filter Questions by category"><svg class="ico"><use href="#i-filter"/></svg><select id="questionCategory" aria-label="Filter Questions by category">' +
+      '</div></section><section class="library-section questions-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Questions</h3><label class="category-filter" title="Filter Questions by category"><select id="questionCategory" aria-label="Filter Questions by category">' +
       categoryOptions(questionCategory) +
       '</select></label></div><button class="primary" id="libraryNewBtn"><svg class="ico"><use href="#i-plus"/></svg>New question</button></div><div class="library-items">' +
       templateHTML +

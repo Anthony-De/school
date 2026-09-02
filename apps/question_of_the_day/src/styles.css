@@ -867,7 +867,8 @@ button {
   overflow: hidden;
 }
 #libraryModal .modal {
-  height: min(780px, 92vh);
+  height: min(840px, 92vh);
+  max-height: 100vh;
 }
 #libraryModal #clearUsedBtn {
   margin-right: auto;
@@ -900,10 +901,6 @@ button {
   align-items: center;
   gap: 5px;
   color: var(--muted);
-}
-.category-filter .ico {
-  width: 17px;
-  height: 17px;
 }
 .category-filter select {
   min-width: 150px;
