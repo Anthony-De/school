@@ -1036,7 +1036,9 @@ import { uid } from './utils/id';
           }
         })
     );
-    $('#clearUsedBtn').disabled = !data.templates.some((t) => t.used);
+    const usedCount = data.templates.filter((t) => t.used).length;
+    $('#clearUsedBtn').disabled = !usedCount;
+    $('#clearUsedBtn').textContent = `Clear All Used (${usedCount})`;
     const hiddenCount = data.deletedBuiltInIds.length;
     $('#restoreHiddenBtn').disabled = !hiddenCount;
     $('#restoreHiddenBtn').textContent = hiddenCount
@@ -1095,6 +1097,14 @@ import { uid } from './utils/id';
         data.templates.map((question) => question.builtinId).filter(Boolean)
       );
     if (!hiddenIds.size) return;
+    const questionLabel = `hidden question${hiddenIds.size === 1 ? '' : 's'}`;
+    if (!confirm(`Restore all ${hiddenIds.size} ${questionLabel}?`)) return;
+    if (
+      !confirm(
+        `Are you sure you want to restore ${hiddenIds.size} ${questionLabel} to the library?`
+      )
+    )
+      return;
     for (const builtIn of BUILT_INS)
       if (
         hiddenIds.has(builtIn.builtinId) &&
