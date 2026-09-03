@@ -40,8 +40,8 @@ jobs:
 
       - name: Prepare Pages site
         run: |
-          mkdir -p pages/question_of_the_day
-          cp -R apps/question_of_the_day/dist/. pages/question_of_the_day/
+          mkdir -p pages
+          cp -R apps/question_of_the_day/dist/. pages/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
