@@ -546,7 +546,7 @@ button {
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 38px auto;
   gap: 5px;
 }
 .image-picker input {
@@ -744,6 +744,77 @@ button {
   background: #fff0f0;
   color: #c43838;
   font-size: 18px;
+}
+.image-picker .choose-library {
+  width: 38px;
+  min-height: 42px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: #ede8ff;
+  color: var(--purple);
+}
+.image-picker .choose-library .ico {
+  width: 20px;
+  height: 20px;
+}
+.image-library-modal {
+  width: min(720px, calc(100vw - 24px));
+}
+.image-library-search {
+  width: 100%;
+  margin-bottom: 14px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  padding: 11px 13px;
+  font: inherit;
+}
+.image-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+  gap: 10px;
+}
+.visual-library-item {
+  min-height: 112px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 2px solid var(--line);
+  border-radius: 13px;
+  background: white;
+  color: var(--ink);
+}
+.visual-library-item:hover,
+.visual-library-item:focus-visible {
+  border-color: var(--purple);
+  background: #f7f4ff;
+}
+.visual-library-item > span {
+  font-size: 42px;
+  line-height: 1.15;
+}
+.visual-library-item > .visual-color-swatch {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 2px;
+  border: 2px solid #687386;
+  border-radius: 10px;
+  background: var(--swatch-color);
+}
+.visual-library-item strong {
+  font-size: 13px;
+}
+.visual-library-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.image-library-empty {
+  grid-column: 1 / -1;
 }
 .student-edit-list {
   display: flex;

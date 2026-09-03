@@ -3,6 +3,7 @@ import {
   DEFAULT_STUDENTS
 } from './data/defaultQuestions';
 import { CHANGELOG, CURRENT_RELEASE } from './data/changelog';
+import { VISUAL_LIBRARY } from './data/visualLibrary';
 import { uid } from './utils/id';
 
 (() => {
@@ -54,6 +55,7 @@ import { uid } from './utils/id';
     savedWorkCategory = '',
     savedWorkExpanded = true,
     questionsExpanded = true,
+    imageLibraryOptionIndex: number | null = null,
     imageCache = new Map<string, string>(),
     dbPromise: Promise<IDBDatabase> | null = null,
     toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -375,6 +377,9 @@ import { uid } from './utils/id';
   async function addImage(file: File) {
     const blob = await compress(file);
     if (!blob) return null;
+    return storeImage(blob);
+  }
+  async function storeImage(blob: Blob) {
     const id = uid();
     await dbPut(id, blob);
     if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
@@ -383,6 +388,14 @@ import { uid } from './utils/id';
     const url = URL.createObjectURL(blob);
     imageCache.set(id, url);
     return { id, url };
+  }
+  function visualBlob(visual: string, label: string, color?: string) {
+    const safeLabel = esc(label);
+    const contents = color
+      ? `<rect x="8" y="8" width="240" height="240" rx="28" fill="${color}" stroke="#687386" stroke-width="8"/>`
+      : `<text x="128" y="132" text-anchor="middle" dominant-baseline="central" font-size="176" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${visual}</text>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="${safeLabel}">${contents}</svg>`;
+    return new Blob([svg], { type: 'image/svg+xml' });
   }
   function imageSrc(a) {
     return a?.imageId ? imageCache.get(a.imageId) || '' : a?.image || '';
@@ -805,12 +818,48 @@ import { uid } from './utils/id';
       : 'Picture';
     picker.querySelector('.remove-img').style.display = src ? 'grid' : 'none';
   }
+  function renderImageLibrary() {
+    const query = $('#imageLibrarySearch').value.trim().toLowerCase();
+    const matches = VISUAL_LIBRARY.filter(([, label, category]) =>
+      `${label} ${category}`.toLowerCase().includes(query)
+    );
+    $('#imageLibraryGrid').innerHTML = matches.length
+      ? matches
+          .map(
+            ([visual, label, category, color], index) =>
+              `<button class="visual-library-item" data-visual-index="${VISUAL_LIBRARY.indexOf(matches[index])}" title="${esc(label)}"><span aria-hidden="true"${color ? ` class="visual-color-swatch" style="--swatch-color:${color}"` : ''}>${color ? '' : visual}</span><strong>${esc(label)}</strong><small>${esc(category)}</small></button>`
+          )
+          .join('')
+      : '<p class="empty-note image-library-empty">No visuals match that search.</p>';
+    $$('#imageLibraryGrid .visual-library-item').forEach(
+      (button) =>
+        (button.onclick = async () => {
+          if (imageLibraryOptionIndex === null) return;
+          const [visual, label, , color] =
+            VISUAL_LIBRARY[+button.dataset.visualIndex];
+          const img = await storeImage(visualBlob(visual, label, color));
+          const answer = draft.answers[imageLibraryOptionIndex];
+          answer.imageId = img.id;
+          delete answer.image;
+          closeModal('imageLibraryModal');
+          renderOptionEditors();
+          toast(`${label} picture added`);
+        })
+    );
+  }
+  function openImageLibrary(optionIndex: number) {
+    imageLibraryOptionIndex = optionIndex;
+    $('#imageLibrarySearch').value = '';
+    renderImageLibrary();
+    $('#imageLibraryModal').classList.add('open');
+    $('#imageLibrarySearch').focus();
+  }
   function renderOptionEditors() {
     const box = $('#answerEditors');
     box.innerHTML = draft.answers
       .map((a, i) => {
         const src = imageSrc(a);
-        return `<div class="answer-editor"><span class="answer-number">${i + 1}</span><input class="answer-text" data-i="${i}" value="${esc(a.text)}" placeholder="Option ${i + 1}"><div class="image-picker"><input type="file" accept="image/*" id="img${i}" data-i="${i}"><label for="img${i}"><span class="picker-visual">${src ? `<img src="${src}" alt="Option image">` : '<svg class="ico"><use href="#i-plus"/></svg>'}</span><span class="picker-text">${src ? 'Replace' : 'Picture'}</span></label><button class="remove-img" data-i="${i}" title="Remove picture" aria-label="Remove picture" style="display:${src ? 'grid' : 'none'}">×</button></div><button class="remove-option" data-i="${i}" title="Remove option" ${draft.answers.length === 1 ? 'disabled' : ''}><svg class="ico"><use href="#i-trash"/></svg></button></div>`;
+        return `<div class="answer-editor"><span class="answer-number">${i + 1}</span><input class="answer-text" data-i="${i}" value="${esc(a.text)}" placeholder="Option ${i + 1}"><div class="image-picker"><input type="file" accept="image/*" id="img${i}" data-i="${i}"><label for="img${i}" title="Upload a picture"><span class="picker-visual">${src ? `<img src="${src}" alt="Option image">` : '<svg class="ico"><use href="#i-plus"/></svg>'}</span><span class="picker-text">${src ? 'Replace' : 'Upload'}</span></label><button class="choose-library" data-i="${i}" title="Choose from visual library" aria-label="Choose from visual library"><svg class="ico"><use href="#i-library"/></svg></button><button class="remove-img" data-i="${i}" title="Remove picture" aria-label="Remove picture" style="display:${src ? 'grid' : 'none'}">×</button></div><button class="remove-option" data-i="${i}" title="Remove option" ${draft.answers.length === 1 ? 'disabled' : ''}><svg class="ico"><use href="#i-trash"/></svg></button></div>`;
       })
       .join('');
     $$('#answerEditors .answer-text').forEach(
@@ -835,6 +884,9 @@ import { uid } from './utils/id';
           delete draft.answers[+x.dataset.i].image;
           pickerPreview(x.closest('.image-picker'), '');
         })
+    );
+    $$('#answerEditors .choose-library').forEach(
+      (x) => (x.onclick = () => openImageLibrary(+x.dataset.i))
     );
     $$('#answerEditors .remove-option').forEach(
       (x) =>
@@ -1320,6 +1372,7 @@ import { uid } from './utils/id';
     );
     $('#deleteQuestionBtn').onclick = deleteQuestion;
     $('#librarySearch').oninput = renderLibrary;
+    $('#imageLibrarySearch').oninput = renderImageLibrary;
     $('#randomQuestionBtn').onclick = randomQuestion;
     $('#restoreHiddenBtn').onclick = restoreHiddenQuestions;
     $('#clearUsedBtn').onclick = clearUsedQuestions;

@@ -258,6 +258,46 @@
       </div>
     </div>
 
+    <div class="modal-wrap" id="imageLibraryModal">
+      <div
+        class="modal image-library-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="imageLibraryTitle">
+        <div class="modal-head">
+          <h2 id="imageLibraryTitle">
+            <svg class="ico"><use href="#i-image" /></svg> Visual Library
+          </h2>
+          <button
+            class="close"
+            data-close="imageLibraryModal"
+            aria-label="Close visual library">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="help">
+            Search for a classroom visual, then choose one for this option.
+          </p>
+          <input
+            id="imageLibrarySearch"
+            class="image-library-search"
+            type="search"
+            placeholder="Search animals, food, feelings…"
+            autocomplete="off" />
+          <div
+            id="imageLibraryGrid"
+            class="image-library-grid"
+            aria-live="polite"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary" data-close="imageLibraryModal">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-wrap" id="libraryModal">
       <div class="modal">
         <div class="modal-head">

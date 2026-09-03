@@ -5,6 +5,12 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.1.0',
+    changes: [
+      'Visual Library: Option pictures can now be chosen from a searchable collection of classroom visuals and basic color swatches, or uploaded from the device.'
+    ]
+  },
+  {
     version: '1.0.1',
     changes: [
       'Classroom view: The question, options, and student groups now use more of the screen on desktop and iPad, with an even larger Present mode.',
