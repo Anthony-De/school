@@ -270,7 +270,10 @@ import { uid } from './utils/id';
       q.placementOrder = Object.keys(q.placements);
     }
   }
-  function moveMany(moves: Array<{ studentId: string; index: number | null }>) {
+  function moveMany(
+    moves: Array<{ studentId: string; index: number | null }>,
+    renderAfter = true
+  ) {
     const q = current();
     if (!q) return;
     q.placementOrder ||= [];
@@ -281,8 +284,8 @@ import { uid } from './utils/id';
     });
     if (!changed.length) {
       selected = null;
-      render();
-      return;
+      if (renderAfter) render();
+      return false;
     }
     const before = snap();
     for (const { studentId, index } of changed) {
@@ -299,10 +302,11 @@ import { uid } from './utils/id';
     if (h.undo.length > 100) h.undo.shift();
     h.redo = [];
     persist();
-    render();
+    if (renderAfter) render();
+    return true;
   }
-  function move(studentId, index) {
-    moveMany([{ studentId, index }]);
+  function move(studentId, index, renderAfter = true) {
+    return moveMany([{ studentId, index }], renderAfter);
   }
 
   function openDB() {
@@ -565,17 +569,46 @@ import { uid } from './utils/id';
   function bindBoard() {
     cancelBoardDrags?.();
     const activePointers = new Set<number>(),
-      pendingMoves = new Map<string, number | null>(),
       targetPointers = new Map<HTMLElement, Set<number>>(),
       cancelPointers = new Map<number, () => void>();
-    const commitPendingMoves = () => {
-      if (activePointers.size || !pendingMoves.size) return;
-      const moves = [...pendingMoves].map(([studentId, index]) => ({
-        studentId,
-        index
-      }));
-      pendingMoves.clear();
-      moveMany(moves);
+    const settleStudent = (el: HTMLElement, index: number | null) => {
+      const oldSlot = el.closest('.slot.occupied'),
+        oldSide = el.closest('.side');
+      if (oldSlot) oldSlot.remove();
+      else if (oldSide) {
+        const spacer = document.createElement('div');
+        spacer.className = 'student-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        el.replaceWith(spacer);
+      }
+      if (index == null) {
+        const student = current()?.students.find((s) => s.id === el.dataset.student),
+          list = $(`.side.${student?.group} .name-list`);
+        list?.querySelector('.student-spacer')?.remove();
+        list?.appendChild(el);
+      } else {
+        const slots = $(`.answer-column[data-answer="${index}"] .slots`),
+          slot = document.createElement('div');
+        slot.className = 'slot occupied';
+        slot.style.setProperty(
+          '--student-group-color',
+          el.style.getPropertyValue('--student-group-color')
+        );
+        slot.appendChild(el);
+        slots?.insertBefore(slot, slots.lastElementChild);
+      }
+      $$('.answer-column').forEach((column) => {
+        const answer = Number(column.dataset.answer),
+          count = Object.values(current()?.placements || {}).filter(
+            (placement) => placement === answer
+          ).length,
+          badge = column.querySelector('.count-badge');
+        badge.setAttribute(
+          'aria-label',
+          `${count} student${count === 1 ? '' : 's'}`
+        );
+        badge.innerHTML = `${count}<span class="count-label"> student${count === 1 ? '' : 's'}</span>`;
+      });
     };
     const setTarget = (
       previous: HTMLElement | null,
@@ -656,12 +689,17 @@ import { uid } from './utils/id';
         if (active) {
           const t = at(e.clientX, e.clientY);
           finish(e.pointerId);
-          if (t?.classList.contains('side')) pendingMoves.set(studentId, null);
+          let index: number | null | undefined;
+          if (t?.classList.contains('side')) index = null;
           else if (t) {
-            const n = Number(t.dataset.answer);
-            if (Number.isFinite(n)) pendingMoves.set(studentId, n);
+            const answer = Number(t.dataset.answer);
+            if (Number.isFinite(answer)) index = answer;
           }
-          commitPendingMoves();
+          if (index !== undefined) {
+            const renderAfter = !activePointers.size;
+            if (move(studentId, index, renderAfter) && !renderAfter)
+              settleStudent(el, index);
+          } else if (!activePointers.size) render();
         } else {
           finish(e.pointerId);
           if (activePointers.size) return;
@@ -670,18 +708,19 @@ import { uid } from './utils/id';
         }
       };
       el.onpointercancel = (e) => {
+        if (!cancelPointers.has(e.pointerId)) return;
         finish(e.pointerId);
-        commitPendingMoves();
+        if (!activePointers.size) render();
       };
       el.onlostpointercapture = (e) => {
+        if (!cancelPointers.has(e.pointerId)) return;
         finish(e.pointerId);
-        commitPendingMoves();
+        if (!activePointers.size) render();
       };
     });
     cancelBoardDrags = () => {
       [...cancelPointers.values()].forEach((cancel) => cancel());
       $$('.drag-ghost').forEach((ghost) => ghost.remove());
-      commitPendingMoves();
     };
     $$('.answer-column').forEach(
       (el) =>
