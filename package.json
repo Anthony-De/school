@@ -1,0 +1,13 @@
+{
+  "name": "mechelle-school",
+  "private": true,
+  "version": "1.0.1",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:question": "pnpm --dir apps/question_of_the_day dev",
+    "build:question": "pnpm --dir apps/question_of_the_day build",
+    "preview:question": "pnpm --dir apps/question_of_the_day preview"
+  }
+}
