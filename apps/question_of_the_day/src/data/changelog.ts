@@ -19,7 +19,7 @@ export const CHANGELOG: ChangelogRelease[] = [
       'Answer order: Names stay in the order they were added to each option, and every newly added name goes to the end.',
       'Response counts: Each option now clearly says how many students selected it.',
       'Attendance: The toolbar shows the number absent, the question shows an absence reminder, and Attendance is clearly disabled when no question is open.',
-      'Question Library: Saved Work appears first and looks different from library questions, with a larger scrolling area and separate category filters for each section.',
+      'Question Library: Saved Work appears first and looks different from library questions, with separate category filters and collapsible sections that expand into the available height.',
       'Finding questions: Search and Random remain easy to reach, answer choices are previewed, and New question sits beside the Questions heading.',
       'Using questions: Choosing a library question opens it in a new tab and confirms that it was added.',
       'Used questions: Questions can be marked used or unused, and Clear All Used shows a count and asks for confirmation before clearing every marker.',

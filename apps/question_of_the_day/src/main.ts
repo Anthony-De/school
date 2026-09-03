@@ -52,6 +52,8 @@ import { uid } from './utils/id';
     draft: any = null,
     questionCategory = '',
     savedWorkCategory = '',
+    savedWorkExpanded = true,
+    questionsExpanded = true,
     imageCache = new Map<string, string>(),
     dbPromise: Promise<IDBDatabase> | null = null,
     toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -632,7 +634,16 @@ import { uid } from './utils/id';
     $('#prevBtn').disabled = disabled;
     $('#nextBtn').disabled = disabled;
     const hasQuestion = !!q,
+      hasResponses = !!q && Object.keys(q.placements).length > 0,
       absentCount = q?.absentStudentIds?.length || 0;
+    $('#resetBtn').disabled = !hasResponses;
+    $('#resetBtn').title = hasResponses
+      ? 'Clear responses'
+      : 'No responses to clear';
+    $('#questionSettingsBtn').disabled = !hasQuestion;
+    $('#questionSettingsBtn').title = hasQuestion
+      ? 'Question settings'
+      : 'Open a question to change its settings';
     $('#attendanceBtn').disabled = !hasQuestion;
     $('#attendanceBadge').textContent = absentCount || '';
     $('#attendanceBadge').hidden = !absentCount;
@@ -985,12 +996,17 @@ import { uid } from './utils/id';
             `<article class="library-item saved-work"><div><h3>${esc(q.title || q.question)} ${isComplete(q) ? '✓' : ''}</h3><p>${esc(q.category || 'Uncategorized')} · ${Object.keys(q.placements).length} response${Object.keys(q.placements).length === 1 ? '' : 's'}</p></div><div class="row-actions"><button class="secondary reopen-session" data-id="${esc(q.id)}">${data.openQuestionIds.includes(q.id) ? 'View' : 'Reopen'}</button><button class="danger delete-session" data-id="${esc(q.id)}" title="Delete saved copy"><svg class="ico"><use href="#i-trash"/></svg></button></div></article>`
         )
         .join('') || '<div class="empty-note">No saved work</div>';
-    $('#libraryList').innerHTML =
-      '<section class="library-section saved-work-section"><div class="library-section-head"><h3 class="library-section-title">Saved Work</h3><label class="category-filter" title="Filter Saved Work by category"><select id="savedWorkCategory" aria-label="Filter Saved Work by category">' +
+    const libraryList = $('#libraryList');
+    libraryList.classList.toggle(
+      'saved-work-expanded',
+      savedWorkExpanded && !questionsExpanded
+    );
+    libraryList.innerHTML =
+      `<section class="library-section saved-work-section ${savedWorkExpanded ? '' : 'collapsed'}"><div class="library-section-head"><h3 class="library-section-title"><button class="library-section-toggle" data-library-section="saved-work" aria-expanded="${savedWorkExpanded}">Saved Work</button></h3><label class="category-filter" title="Filter Saved Work by category"><select id="savedWorkCategory" aria-label="Filter Saved Work by category">` +
       categoryOptions(savedWorkCategory) +
       '</select></label></div><div class="library-items">' +
       sessionHTML +
-      '</div></section><section class="library-section questions-section"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title">Questions</h3><button class="primary" id="libraryNewBtn"><svg class="ico"><use href="#i-plus"/></svg>New question</button></div><label class="category-filter" title="Filter Questions by category"><select id="questionCategory" aria-label="Filter Questions by category">' +
+      `</div></section><section class="library-section questions-section ${questionsExpanded ? '' : 'collapsed'}"><div class="library-section-head"><div class="library-section-title-group"><h3 class="library-section-title"><button class="library-section-toggle" data-library-section="questions" aria-expanded="${questionsExpanded}">Questions</button></h3><button class="primary" id="libraryNewBtn"><svg class="ico"><use href="#i-plus"/></svg>New question</button></div><label class="category-filter" title="Filter Questions by category"><select id="questionCategory" aria-label="Filter Questions by category">` +
       categoryOptions(questionCategory) +
       '</select></label></div><div class="library-items">' +
       templateHTML +
@@ -1004,6 +1020,15 @@ import { uid } from './utils/id';
       renderLibrary();
     };
     $('#libraryNewBtn').onclick = openNew;
+    $$('[data-library-section]').forEach(
+      (button) =>
+        (button.onclick = () => {
+          if (button.dataset.librarySection === 'saved-work')
+            savedWorkExpanded = !savedWorkExpanded;
+          else questionsExpanded = !questionsExpanded;
+          renderLibrary();
+        })
+    );
     $$('.toggle-used').forEach(
       (b) =>
         (b.onclick = () => {

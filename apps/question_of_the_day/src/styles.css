@@ -8,6 +8,8 @@
   --pink-bg: #fff0f6;
   --blue: #438de0;
   --blue-bg: #eef7ff;
+  --disabled-control-color: #a1a9b7;
+  --disabled-control-bg: #f4f6f9;
   --shadow: 0 10px 30px #28334d18;
 }
 * {
@@ -106,13 +108,10 @@ button {
   color: var(--ink);
 }
 .icon-btn:disabled {
-  opacity: 0.4;
+  color: var(--disabled-control-color);
+  background: var(--disabled-control-bg);
+  opacity: 1;
   cursor: not-allowed;
-}
-#attendanceBtn:disabled {
-  opacity: 0.2;
-  color: #8993a5;
-  background: #f5f6f8;
   filter: grayscale(1);
 }
 .secondary:disabled {
@@ -932,6 +931,15 @@ button {
 .questions-section {
   flex: 1 1 auto;
 }
+.library-list.saved-work-expanded .saved-work-section {
+  flex: 0 1 auto;
+}
+.library-section.collapsed {
+  flex: 0 0 auto;
+}
+.library-section.collapsed .library-items {
+  display: none;
+}
 .library-section-head {
   flex: 0 0 auto;
   display: flex;
@@ -959,6 +967,24 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.library-section-toggle {
+  border: 0;
+  padding: 4px 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+}
+.library-section-toggle::before {
+  content: '›';
+  display: inline-block;
+  margin-right: 6px;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+.library-section-toggle[aria-expanded='false']::before {
+  transform: rotate(0deg);
 }
 #libraryNewBtn {
   min-height: 38px;
