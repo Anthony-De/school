@@ -49,7 +49,6 @@ import { uid } from './utils/id';
   let data: any,
     historyMap: Record<string, { undo: string[]; redo: string[] }> = {},
     selected: string | null = null,
-    dragId: string | null = null,
     draft: any = null,
     questionCategory = '',
     savedWorkCategory = '',
@@ -58,6 +57,7 @@ import { uid } from './utils/id';
     imageLibraryOptionIndex: number | null = null,
     imageCache = new Map<string, string>(),
     dbPromise: Promise<IDBDatabase> | null = null,
+    cancelBoardDrags: (() => void) | null = null,
     toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   function defaultData() {
@@ -270,23 +270,28 @@ import { uid } from './utils/id';
       q.placementOrder = Object.keys(q.placements);
     }
   }
-  function move(studentId, index) {
+  function moveMany(moves: Array<{ studentId: string; index: number | null }>) {
     const q = current();
     if (!q) return;
     q.placementOrder ||= [];
-    const previousIndex = q.placements[studentId];
-    const alreadyOrdered = q.placementOrder.includes(studentId);
-    if (previousIndex === index && (index == null || alreadyOrdered)) {
+    const changed = moves.filter(({ studentId, index }) => {
+      const previousIndex = q.placements[studentId];
+      const alreadyOrdered = q.placementOrder.includes(studentId);
+      return previousIndex !== index || (index != null && !alreadyOrdered);
+    });
+    if (!changed.length) {
       selected = null;
       render();
       return;
     }
     const before = snap();
-    q.placementOrder = q.placementOrder.filter((id) => id !== studentId);
-    if (index == null) delete q.placements[studentId];
-    else {
-      q.placements[studentId] = index;
-      q.placementOrder.push(studentId);
+    for (const { studentId, index } of changed) {
+      q.placementOrder = q.placementOrder.filter((id) => id !== studentId);
+      if (index == null) delete q.placements[studentId];
+      else {
+        q.placements[studentId] = index;
+        q.placementOrder.push(studentId);
+      }
     }
     selected = null;
     const h = history();
@@ -295,6 +300,9 @@ import { uid } from './utils/id';
     h.redo = [];
     persist();
     render();
+  }
+  function move(studentId, index) {
+    moveMany([{ studentId, index }]);
   }
 
   function openDB() {
@@ -555,40 +563,77 @@ import { uid } from './utils/id';
     render();
   }
   function bindBoard() {
+    cancelBoardDrags?.();
+    const activePointers = new Set<number>(),
+      pendingMoves = new Map<string, number | null>(),
+      targetPointers = new Map<HTMLElement, Set<number>>(),
+      cancelPointers = new Map<number, () => void>();
+    const commitPendingMoves = () => {
+      if (activePointers.size || !pendingMoves.size) return;
+      const moves = [...pendingMoves].map(([studentId, index]) => ({
+        studentId,
+        index
+      }));
+      pendingMoves.clear();
+      moveMany(moves);
+    };
+    const setTarget = (
+      previous: HTMLElement | null,
+      next: HTMLElement | null,
+      pointerId: number,
+      color: string
+    ) => {
+      if (previous) {
+        const pointers = targetPointers.get(previous);
+        pointers?.delete(pointerId);
+        if (!pointers?.size) {
+          targetPointers.delete(previous);
+          previous.classList.remove('drag-target');
+          previous.style.removeProperty('--drag-color');
+        }
+      }
+      if (next) {
+        const pointers = targetPointers.get(next) || new Set<number>();
+        pointers.add(pointerId);
+        targetPointers.set(next, pointers);
+        next.classList.add('drag-target');
+        next.style.setProperty('--drag-color', color);
+      }
+      return next;
+    };
     $$('.student').forEach((el) => {
       let sx = 0,
         sy = 0,
         active = false,
-        ghost = null;
-      const clear = () =>
-          $$('.drag-target').forEach((x) => x.classList.remove('drag-target')),
+        ghost = null,
+        target: HTMLElement | null = null;
+      const studentId = el.dataset.student,
         at = (x: number, y: number): HTMLElement | null =>
           document
             .elementFromPoint(x, y)
             ?.closest<HTMLElement>('.answer-column,.side') || null,
-        finish = () => {
+        finish = (pointerId: number) => {
           ghost?.remove();
           el.classList.remove('dragging-source');
-          clear();
-          document.body.style.removeProperty('--drag-color');
+          target = setTarget(target, null, pointerId, '');
+          activePointers.delete(pointerId);
+          cancelPointers.delete(pointerId);
           active = false;
+          ghost = null;
         };
       el.onpointerdown = (e) => {
         if (e.button !== 0) return;
         sx = e.clientX;
         sy = e.clientY;
-        dragId = el.dataset.student;
+        activePointers.add(e.pointerId);
         el.setPointerCapture(e.pointerId);
+        cancelPointers.set(e.pointerId, () => finish(e.pointerId));
       };
       el.onpointermove = (e) => {
         if (!el.hasPointerCapture(e.pointerId)) return;
         if (!active && Math.hypot(e.clientX - sx, e.clientY - sy) > 7) {
           active = true;
           selected = null;
-          document.body.style.setProperty(
-            '--drag-color',
-            el.style.getPropertyValue('--student-group-color')
-          );
           ghost = el.cloneNode(true);
           ghost.classList.add('drag-ghost');
           document.body.appendChild(ghost);
@@ -598,30 +643,46 @@ import { uid } from './utils/id';
           e.preventDefault();
           ghost.style.left = e.clientX + 'px';
           ghost.style.top = e.clientY + 'px';
-          clear();
-          at(e.clientX, e.clientY)?.classList.add('drag-target');
+          target = setTarget(
+            target,
+            at(e.clientX, e.clientY),
+            e.pointerId,
+            el.style.getPropertyValue('--student-group-color')
+          );
         }
       };
       el.onpointerup = (e) => {
         if (!el.hasPointerCapture(e.pointerId)) return;
-        el.releasePointerCapture(e.pointerId);
         if (active) {
           const t = at(e.clientX, e.clientY);
-          finish();
-          if (t?.classList.contains('side')) move(dragId, null);
+          finish(e.pointerId);
+          if (t?.classList.contains('side')) pendingMoves.set(studentId, null);
           else if (t) {
             const n = Number(t.dataset.answer);
-            if (Number.isFinite(n)) move(dragId, n);
+            if (Number.isFinite(n)) pendingMoves.set(studentId, n);
           }
+          commitPendingMoves();
         } else {
-          selected =
-            selected === el.dataset.student ? null : el.dataset.student;
+          finish(e.pointerId);
+          if (activePointers.size) return;
+          selected = selected === studentId ? null : studentId;
           render();
         }
-        active = false;
       };
-      el.onpointercancel = finish;
+      el.onpointercancel = (e) => {
+        finish(e.pointerId);
+        commitPendingMoves();
+      };
+      el.onlostpointercapture = (e) => {
+        finish(e.pointerId);
+        commitPendingMoves();
+      };
     });
+    cancelBoardDrags = () => {
+      [...cancelPointers.values()].forEach((cancel) => cancel());
+      $$('.drag-ghost').forEach((ghost) => ghost.remove());
+      commitPendingMoves();
+    };
     $$('.answer-column').forEach(
       (el) =>
         (el.onclick = () => {
@@ -1419,6 +1480,11 @@ import { uid } from './utils/id';
       }
       if (e.key === 'Escape')
         $$('.modal-wrap.open').forEach((x) => closeModal(x.id));
+    });
+    window.addEventListener('blur', () => cancelBoardDrags?.());
+    window.addEventListener('pagehide', () => cancelBoardDrags?.());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancelBoardDrags?.();
     });
   }
   async function init() {

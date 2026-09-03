@@ -5,6 +5,12 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.1.1',
+    changes: [
+      'Multi-touch dragging: Multiple students can now be moved at the same time on phones and tablets without mixing up names or leaving stuck drag previews.'
+    ]
+  },
+  {
     version: '1.1.0',
     changes: [
       'Visual Library: Option pictures can now be chosen from a searchable collection of classroom visuals and basic color swatches, or uploaded from the device.',
