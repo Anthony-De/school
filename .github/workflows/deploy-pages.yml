@@ -38,10 +38,15 @@ jobs:
       - name: Build app
         run: pnpm --dir apps/question_of_the_day build
 
+      - name: Prepare Pages site
+        run: |
+          mkdir -p pages/question_of_the_day
+          cp -R apps/question_of_the_day/dist/. pages/question_of_the_day/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/question_of_the_day/dist
+          path: pages
 
   deploy:
     needs: build
