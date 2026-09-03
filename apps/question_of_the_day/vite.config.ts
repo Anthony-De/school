@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/school/',
+  base: '/school/question_of_the_day/',
   server: {
     host: '0.0.0.0',
     port: 5173
