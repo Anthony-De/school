@@ -452,6 +452,22 @@ button {
 .update-list li + li {
   margin-top: 7px;
 }
+.changelog-history {
+  display: grid;
+  gap: 14px;
+}
+.changelog-release {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.changelog-release:first-child {
+  padding-top: 4px;
+  border-top: 0;
+}
+.changelog-release h3 {
+  margin: 0 0 9px;
+  color: var(--purple);
+}
 .app-info-list {
   display: grid;
   gap: 8px;

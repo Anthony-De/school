@@ -1337,6 +1337,16 @@ import { uid } from './utils/id';
       .join('');
     $('#updateModal').classList.add('open');
   }
+  function openChangelog() {
+    $('#changelogHistory').innerHTML = [...CHANGELOG]
+      .sort((a, b) => compareVersions(b.version, a.version))
+      .map(
+        (release) =>
+          `<section class="changelog-release"><h3>Version ${esc(release.version)}</h3><ul class="update-list">${release.changes.map((change) => `<li>${esc(change)}</li>`).join('')}</ul></section>`
+      )
+      .join('');
+    $('#changelogModal').classList.add('open');
+  }
   function toast(msg) {
     const el = $('#toast');
     el.textContent = msg;
@@ -1359,6 +1369,7 @@ import { uid } from './utils/id';
     $('#presentBtn').onclick = togglePresentation;
     $('#saveSettingsBtn').onclick = saveSettings;
     $('#saveAttendanceBtn').onclick = saveAttendance;
+    $('#viewChangelogBtn').onclick = openChangelog;
     $('#saveQuestionBtn').onclick = saveQuestion;
     $('#addOptionBtn').onclick = () => {
       draft.answers.push({ text: '', imageId: null, sourceIndex: null });

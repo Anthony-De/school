@@ -7,7 +7,9 @@ export const CHANGELOG: ChangelogRelease[] = [
   {
     version: '1.1.0',
     changes: [
-      'Visual Library: Option pictures can now be chosen from a searchable collection of classroom visuals and basic color swatches, or uploaded from the device.'
+      'Visual Library: Option pictures can now be chosen from a searchable collection of classroom visuals and basic color swatches, or uploaded from the device.',
+      'Browser tab: The Question of the Day icon now loads as a standard, lightweight favicon.',
+      'Changelog: About this app now links to the complete release history, while the automatic update message stays focused on recent changes.'
     ]
   },
   {

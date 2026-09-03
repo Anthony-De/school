@@ -5,7 +5,7 @@
     <meta
       name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
     <link rel="stylesheet" href="/src/styles.css" />
     <title>Question of the Day</title>
   </head>
@@ -170,6 +170,9 @@
               questions, and student answers. Clearing your browser data may
               erase them.
             </p>
+            <button class="secondary" id="viewChangelogBtn">
+              View full changelog
+            </button>
           </details>
         </div>
         <div class="modal-actions">
@@ -353,6 +356,33 @@
         </div>
         <div class="modal-actions">
           <button class="primary" data-close="updateModal">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-wrap" id="changelogModal">
+      <div
+        class="modal update-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="changelogTitle">
+        <div class="modal-head">
+          <h2 id="changelogTitle">Changelog</h2>
+          <button
+            class="close"
+            data-close="changelogModal"
+            aria-label="Close changelog">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="update-intro">
+            Everything added and improved in Question of the Day.
+          </p>
+          <div id="changelogHistory" class="changelog-history"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="primary" data-close="changelogModal">Done</button>
         </div>
       </div>
     </div>
