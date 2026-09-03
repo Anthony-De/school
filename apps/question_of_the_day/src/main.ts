@@ -667,8 +667,11 @@ import { uid } from './utils/id';
         if (!active && Math.hypot(e.clientX - sx, e.clientY - sy) > 7) {
           active = true;
           selected = null;
+          const bounds = el.getBoundingClientRect();
           ghost = el.cloneNode(true);
           ghost.classList.add('drag-ghost');
+          ghost.style.width = `${bounds.width}px`;
+          ghost.style.height = `${bounds.height}px`;
           document.body.appendChild(ghost);
           el.classList.add('dragging-source');
         }
