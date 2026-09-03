@@ -40,8 +40,8 @@ jobs:
 
       - name: Prepare Pages site
         run: |
-          mkdir -p pages/school/question_of_the_day
-          cp -R apps/question_of_the_day/dist/. pages/school/question_of_the_day/
+          mkdir -p pages/question_of_the_day
+          cp -R apps/question_of_the_day/dist/. pages/question_of_the_day/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -49,7 +49,7 @@ jobs:
           path: pages
 
   deploy:
-    needs: build
+  needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
